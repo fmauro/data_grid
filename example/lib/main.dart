@@ -28,11 +28,18 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  List<dynamic> rowData = [
-    "teddddst",
-    "testwrite",
-    true,
-    const Icon(Icons.ac_unit_outlined)
+  List<List<dynamic>> data = [
+    ["test", "ttasdte", true, const Icon(Icons.ac_unit_outlined)],
+    ["test", "ttteasdf", true, const Icon(Icons.ac_unit_outlined)],
+    ["teasst", "ttte", true, const Icon(Icons.ac_unit_outlined)],
+    ["teasdst", "ttasdfte", true, const Icon(Icons.ac_unit_outlined)],
+    ["tedst", "tttdedf", false, const Icon(Icons.ac_unit_outlined)],
+    ["tfasest", "ttte", true, const Icon(Icons.ac_unit_outlined)],
+    ["teasdst", "tasdftte", true, const Icon(Icons.ac_unit_outlined)],
+    ["test", "tttea", false, const Icon(Icons.ac_unit_outlined)],
+    ["tesddt", "ttasdfte", true, const Icon(Icons.ac_unit_outlined)],
+    ["teasdfstasdf", "ttadsfte", true, const Icon(Icons.ac_unit_outlined)],
+    ["teasdfst", "ttteasdf", true, const Icon(Icons.ac_unit_outlined)],
   ];
 
   @override
@@ -53,7 +60,7 @@ class _MyHomePageState extends State<MyHomePage> {
         padding: const EdgeInsets.all(8.0),
         child: DataGrid(
           onValueChanged: (col, row, value) => setState(() {
-            rowData[col] = value;
+            data[row][col] = value;
           }),
           columns: [
             GridColumn(Text("Tesdt"), DataType.text),
@@ -61,24 +68,7 @@ class _MyHomePageState extends State<MyHomePage> {
             GridColumn(Text("Tffest"), DataType.checkbox),
             GridColumn(Text("widgetTest"), DataType.widget)
           ],
-          rows: [
-            GridRow(rowData),
-            GridRow(rowData),
-            GridRow(rowData),
-            GridRow(rowData),
-            GridRow(rowData),
-            GridRow(rowData),
-            GridRow(rowData),
-            GridRow(rowData),
-            GridRow(rowData),
-            GridRow(rowData),
-            GridRow(rowData),
-            GridRow(rowData),
-            GridRow(rowData),
-            GridRow(rowData),
-            GridRow(rowData),
-            GridRow(rowData),
-          ],
+          rows: data.map((d) => GridRow(d)).toList(),
         ),
       ),
     );

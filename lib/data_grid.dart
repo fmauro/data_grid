@@ -51,12 +51,15 @@ class DataGrid extends StatelessWidget {
       case DataType.textFormField:
         return DataCell(SizedBox(
           child: TextFormField(
-              initialValue: row.cells[columnIndex],
-              onChanged: (value) {
-                if (onValueChanged != null) {
-                  onValueChanged!(columnIndex, rowIndex, value);
-                }
-              }),
+            readOnly: onValueChanged == null,
+            initialValue: row.cells[columnIndex],
+            onChanged: (value) {
+              if (onValueChanged != null) {
+                onValueChanged!(columnIndex, rowIndex, value);
+              }
+            },
+            autovalidateMode: AutovalidateMode.always,
+          ),
           width: cellWidth,
         ));
       case DataType.checkbox:
