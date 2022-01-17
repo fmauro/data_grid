@@ -32,51 +32,67 @@ class DataGrid extends StatelessWidget {
           for (int r = 0; r < rows.length; r++)
             DataRow(cells: [
               for (int c = 0; c < columns.length; c++)
-                _buildCell(r, c, cellWidth)
+                _buildCell(c, r, cellWidth)
             ]),
         ],
       );
     });
   }
 
-  DataCell _buildCell(int rowIndex, int columnIndex, double? cellWidth) {
-    final row = rows[rowIndex];
+  DataCell _buildCell(int col, int row, double? cellWidth) {
+    final cellValue = rows[row].cells[col];
 
-    switch (columns[columnIndex].type) {
+    Widget child;
+    switch (columns[col].type) {
       case DataType.text:
-        return DataCell(SizedBox(
-          child: Text(row.cells[columnIndex]),
-          width: cellWidth,
-        ));
+        child = Text(cellValue);
+        break;
       case DataType.textFormField:
-        return DataCell(SizedBox(
-          child: TextFormField(
+        child = TextFormField(
             readOnly: onValueChanged == null,
-            initialValue: row.cells[columnIndex],
+            initialValue: cellValue,
             onChanged: (value) {
               if (onValueChanged != null) {
-                onValueChanged!(columnIndex, rowIndex, value);
+                onValueChanged!(col, row, value);
               }
-            },
-            autovalidateMode: AutovalidateMode.always,
-          ),
-          width: cellWidth,
-        ));
+            });
+        break;
       case DataType.checkbox:
-        return DataCell(SizedBox(
-          child: Checkbox(
-              value: row.cells[columnIndex],
-              onChanged: (value) {
-                if (onValueChanged != null) {
-                  onValueChanged!(columnIndex, rowIndex, value);
-                }
-              }),
-          width: cellWidth,
-        ));
+        child = Checkbox(
+            value: cellValue,
+            onChanged: (value) {
+              if (onValueChanged != null) {
+                onValueChanged!(col, row, value);
+              }
+            });
+        break;
       case DataType.widget:
-        return DataCell(
-            SizedBox(child: row.cells[columnIndex], width: cellWidth));
+        child = cellValue;
+        break;
     }
+
+    if (columns[col].validator != null) {
+      final val = columns[col].validator!(col, row, cellValue);
+      if (val != null) {
+        return DataCell(Container(
+          width: cellWidth,
+          height: double.infinity,
+          decoration: BoxDecoration(color: Colors.red.withAlpha(50)),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: child,
+          ),
+        ));
+      }
+    }
+
+    return DataCell(SizedBox(
+      width: cellWidth,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+        child: child,
+      ),
+    ));
   }
 }
 
@@ -89,8 +105,9 @@ class GridRow {
 class GridColumn {
   final Widget label;
   final DataType type;
+  final String? Function(int col, int row, dynamic value)? validator;
 
-  GridColumn(this.label, this.type);
+  GridColumn(this.label, this.type, {this.validator});
 }
 
 enum DataType { text, textFormField, checkbox, widget }

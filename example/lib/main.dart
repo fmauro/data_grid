@@ -61,12 +61,31 @@ class _MyHomePageState extends State<MyHomePage> {
         child: DataGrid(
           onValueChanged: (col, row, value) => setState(() {
             data[row][col] = value;
+            if (col == 2) data[row][1] = "T";
           }),
           columns: [
             GridColumn(Text("Tesdt"), DataType.text),
-            GridColumn(Text("Tessst"), DataType.textFormField),
-            GridColumn(Text("Tffest"), DataType.checkbox),
-            GridColumn(Text("widgetTest"), DataType.widget)
+            GridColumn(
+              Text("Tessst"),
+              DataType.textFormField,
+              validator: (col, row, value) {
+                if (value != "Tessst") return "wrong value";
+                return null;
+              },
+            ),
+            GridColumn(
+              Text("Tffest"),
+              DataType.checkbox,
+              validator: (col, row, value) {
+                if (value != true) return "wrong value";
+                return null;
+              },
+            ),
+            GridColumn(
+              Text("widgetTest"),
+              DataType.widget,
+              validator: (col, row, value) => 'd',
+            )
           ],
           rows: data.map((d) => GridRow(d)).toList(),
         ),
