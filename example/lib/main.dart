@@ -40,6 +40,45 @@ class _MyHomePageState extends State<MyHomePage> {
   int _activeCol = 0;
   dynamic _lastValue;
 
+  late DataGridController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = DataGridController(
+      columns: [
+        GridColumn(
+            const Expanded(child: Center(child: Text("Text (read Only)"))),
+            DataType.text,
+            readOnly: true),
+        GridColumn(
+          const Expanded(child: Center(child: Text("Checkbox (read only)"))),
+          DataType.checkbox,
+          alignment: Alignment.centerRight,
+          readOnly: true,
+        ),
+        GridColumn(
+          const Expanded(child: Center(child: Text("Text (editable)"))),
+          DataType.text,
+          validator: (col, row, value) {
+            if (value != "Valid value") return "Wrong";
+            return null;
+          },
+        ),
+        GridColumn(
+          const Expanded(child: Center(child: Text("Checkbox (editable)"))),
+          DataType.checkbox,
+        ),
+        GridColumn(
+          const Expanded(child: Center(child: Text("Widget"))),
+          DataType.widget,
+          readOnly: true,
+        )
+      ],
+      rows: data,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -67,56 +106,21 @@ class _MyHomePageState extends State<MyHomePage> {
                   child: Icon(Icons.query_builder),
                 ),
                 Text("Last value: $_lastValue"),
+                IconButton(
+                    onPressed: () => controller.setCellValue(0, 1, false),
+                    icon: const Icon(Icons.text_snippet))
               ],
             ),
             DataGrid(
+              controller: controller,
               onFocusedRowChanged: (row) => setState(() => _activeRow = row),
               onFocusedColumnChanged: (col) => setState(() => _activeCol = col),
               onValueChanged: (col, row, value) =>
                   setState(() => _lastValue = value),
-              columns: [
-                GridColumn(
-                    const Expanded(
-                        child: Center(child: Text("Text (read Only)"))),
-                    DataType.text,
-                    readOnly: true),
-                GridColumn(
-                  const Expanded(
-                      child: Center(child: Text("Checkbox (read only)"))),
-                  DataType.checkbox,
-                  alignment: Alignment.centerRight,
-                  readOnly: true,
-                ),
-                GridColumn(
-                  const Expanded(child: Center(child: Text("Text (editable)"))),
-                  DataType.text,
-                  validator: (col, row, value) {
-                    if (value != "Valid value") return "Wrong";
-                    return null;
-                  },
-                ),
-                GridColumn(
-                  const Expanded(
-                      child: Center(child: Text("Checkbox (editable)"))),
-                  DataType.checkbox,
-                ),
-                GridColumn(
-                  const Expanded(child: Center(child: Text("Widget"))),
-                  DataType.widget,
-                  readOnly: true,
-                )
-              ],
-              rows: data,
             ),
           ],
         ),
       ),
     );
-  }
-
-  _changeRow(int row) {
-    setState(() {
-      _activeRow = row;
-    });
   }
 }

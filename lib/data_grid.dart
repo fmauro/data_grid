@@ -5,47 +5,39 @@ import 'package:flutter/material.dart';
 class DataGrid extends StatefulWidget {
   const DataGrid(
       {Key? key,
-      required this.columns,
-      required this.rows,
+      required this.controller,
       this.onValueChanged,
       this.onFocusedRowChanged,
       this.onFocusedColumnChanged})
       : super(key: key);
 
-  final List<GridColumn> columns;
-  final List<List<dynamic>> rows;
+  final DataGridController controller;
 
   final Function(int col, int row, dynamic value)? onValueChanged;
   final Function(int row)? onFocusedRowChanged;
   final Function(int col)? onFocusedColumnChanged;
 
   @override
-  State<DataGrid> createState() => _DataGridState(columns, rows);
+  State<DataGrid> createState() => _DataGridState();
 }
 
 class _DataGridState extends State<DataGrid> {
-  final List<GridColumn> columns;
-  final List<List<dynamic>> rows;
-
   int? _focusedRow;
   int? _focusedColumn;
 
-  final Map<int, TextEditingController> controllers = {};
   final Map<int, FocusNode> focusNodes = {};
-
-  _DataGridState(this.columns, this.rows);
 
   @override
   void initState() {
     super.initState();
+
+    widget.controller.addListener(() => setState(() {}));
+
+    final columns = widget.controller.columns;
+    final rows = widget.controller.rows;
+
     for (int c = 0; c < columns.length; c++) {
       for (int r = 0; r < rows.length; r++) {
-        if (columns[c].type == DataType.text) {
-          final controller = TextEditingController();
-          controllers[c * rows.length + r] = controller;
-          controller.text = rows[r][c];
-        }
-
         if (!columns[c].readOnly) {
           final focusNode = FocusNode();
           focusNodes[c * rows.length + r] = focusNode;
@@ -62,6 +54,9 @@ class _DataGridState extends State<DataGrid> {
 
   @override
   Widget build(BuildContext context) {
+    final columns = widget.controller.columns;
+    final rows = widget.controller.rows;
+
     return LayoutBuilder(builder: (context, constraints) {
       final cellWidth = constraints.maxWidth / columns.length;
       return DataTable(
@@ -81,6 +76,9 @@ class _DataGridState extends State<DataGrid> {
   }
 
   DataCell _buildCell(int col, int row, double? cellWidth) {
+    final columns = widget.controller.columns;
+    final rows = widget.controller.rows;
+
     final column = columns[col];
     final cellValue = rows[row][col];
     final cellIndex = col * rows.length + row;
@@ -103,7 +101,7 @@ class _DataGridState extends State<DataGrid> {
             enabled: !column.readOnly,
             focusNode: focusNodes[cellIndex],
             decoration: decoration,
-            controller: controllers[col * rows.length + row],
+            controller: widget.controller.controllers[col * rows.length + row],
             readOnly: column.readOnly,
             onChanged: (value) => _setValue(col, row, value));
 
@@ -174,9 +172,9 @@ class _DataGridState extends State<DataGrid> {
   }
 
   void _setValue(int col, int row, dynamic value) {
-    setState(() {
-      rows[row][col] = value;
-    });
+    if (value != widget.controller.rows[row][col]) {
+      widget.controller.setCellValue(row, col, value, notify: false);
+    }
     if (widget.onValueChanged != null) {
       widget.onValueChanged!(col, row, value);
     }
@@ -185,10 +183,6 @@ class _DataGridState extends State<DataGrid> {
   @override
   void dispose() {
     super.dispose();
-
-    for (var controller in controllers.values) {
-      controller.dispose();
-    }
 
     for (var focusNode in focusNodes.values) {
       focusNode.dispose();
@@ -218,7 +212,45 @@ class GridColumn {
 
 enum DataType { text, checkbox, widget }
 
-class AlwaysDisabledFocusNode extends FocusNode {
+class DataGridController extends ChangeNotifier {
+  final List<GridColumn> columns;
+  final List<List<dynamic>> rows;
+
+  final Map<int, TextEditingController> controllers = {};
+
+  DataGridController({
+    required this.columns,
+    required this.rows,
+  }) {
+    for (int c = 0; c < columns.length; c++) {
+      for (int r = 0; r < rows.length; r++) {
+        if (columns[c].type == DataType.text) {
+          final controller = TextEditingController();
+          controllers[c * rows.length + r] = controller;
+          controller.text = rows[r][c];
+        }
+      }
+    }
+  }
+
+  setCellValue(int row, int col, dynamic value, {bool notify = true}) {
+    rows[row][col] = value;
+    if (notify) {
+      controllers[col * rows.length + row]?.text = value;
+      notifyListeners();
+    }
+  }
+
+  dynamic getCellValue(int row, int col) {
+    return rows[row][col];
+  }
+
   @override
-  bool get hasFocus => false;
+  void dispose() {
+    super.dispose();
+
+    for (var controller in controllers.values) {
+      controller.dispose();
+    }
+  }
 }
