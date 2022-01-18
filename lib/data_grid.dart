@@ -7,35 +7,54 @@ class DataGrid extends StatefulWidget {
       {Key? key,
       required this.columns,
       required this.rows,
-      this.onValueChanged})
+      this.onValueChanged,
+      this.onFocusedRowChanged,
+      this.onFocusedColumnChanged})
       : super(key: key);
 
   final List<GridColumn> columns;
-  final List<dynamic> rows;
+  final List<List<dynamic>> rows;
 
   final Function(int col, int row, dynamic value)? onValueChanged;
+  final Function(int row)? onFocusedRowChanged;
+  final Function(int col)? onFocusedColumnChanged;
 
   @override
-  State<DataGrid> createState() => _DataGridState();
+  State<DataGrid> createState() => _DataGridState(columns, rows);
 }
 
 class _DataGridState extends State<DataGrid> {
+  final List<GridColumn> columns;
+  final List<List<dynamic>> rows;
+
+  int? _focusedRow;
+  int? _focusedColumn;
+
   final Map<int, TextEditingController> controllers = {};
   final Map<int, FocusNode> focusNodes = {};
+
+  _DataGridState(this.columns, this.rows);
 
   @override
   void initState() {
     super.initState();
-    for (int c = 0; c < widget.columns.length; c++) {
-      for (int r = 0; r < widget.rows.length; r++) {
-        if (widget.columns[c].type == DataType.text) {
+    for (int c = 0; c < columns.length; c++) {
+      for (int r = 0; r < rows.length; r++) {
+        if (columns[c].type == DataType.text) {
           final controller = TextEditingController();
-          controllers[c * widget.rows.length + r] = controller;
-          controller.text = widget.rows[r][c];
+          controllers[c * rows.length + r] = controller;
+          controller.text = rows[r][c];
         }
 
-        if (!widget.columns[c].readOnly) {
-          focusNodes[c * widget.rows.length + r] = FocusNode();
+        if (!columns[c].readOnly) {
+          final focusNode = FocusNode();
+          focusNodes[c * rows.length + r] = focusNode;
+          focusNode.addListener(() {
+            if (focusNode.hasFocus) {
+              _setFocusedColumn(c);
+              _setFocusedRow(r);
+            }
+          });
         }
       }
     }
@@ -44,16 +63,16 @@ class _DataGridState extends State<DataGrid> {
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, constraints) {
-      final cellWidth = constraints.maxWidth / widget.columns.length;
+      final cellWidth = constraints.maxWidth / columns.length;
       return DataTable(
         horizontalMargin: 0,
         checkboxHorizontalMargin: 0,
         columnSpacing: 0,
-        columns: widget.columns.map((e) => DataColumn(label: e.label)).toList(),
+        columns: columns.map((e) => DataColumn(label: e.label)).toList(),
         rows: [
-          for (int r = 0; r < widget.rows.length; r++)
+          for (int r = 0; r < rows.length; r++)
             DataRow(cells: [
-              for (int c = 0; c < widget.columns.length; c++)
+              for (int c = 0; c < columns.length; c++)
                 _buildCell(c, r, cellWidth)
             ]),
         ],
@@ -62,9 +81,9 @@ class _DataGridState extends State<DataGrid> {
   }
 
   DataCell _buildCell(int col, int row, double? cellWidth) {
-    final column = widget.columns[col];
-    final cellValue = widget.rows[row][col];
-    final cellIndex = col * widget.rows.length + row;
+    final column = columns[col];
+    final cellValue = rows[row][col];
+    final cellIndex = col * rows.length + row;
 
     final decoration = InputDecoration(
         border: InputBorder.none,
@@ -74,26 +93,19 @@ class _DataGridState extends State<DataGrid> {
         disabledBorder: InputBorder.none,
         contentPadding:
             const EdgeInsets.only(left: 15, bottom: 11, top: 11, right: 15),
-        hintText: widget.columns[col].hintText);
+        hintText: columns[col].hintText);
 
     Widget? child;
-    switch (widget.columns[col].type) {
+    switch (columns[col].type) {
       case DataType.text:
         final tff = TextFormField(
             textAlign: column.textAlign,
             enabled: !column.readOnly,
             focusNode: focusNodes[cellIndex],
             decoration: decoration,
-            controller: controllers[col * widget.rows.length + row],
+            controller: controllers[col * rows.length + row],
             readOnly: column.readOnly,
-            onChanged: (value) {
-              setState(() {
-                widget.rows[row][col] = value;
-              });
-              if (widget.onValueChanged != null) {
-                widget.onValueChanged!(col, row, value);
-              }
-            });
+            onChanged: (value) => _setValue(col, row, value));
 
         child = tff;
         break;
@@ -105,12 +117,9 @@ class _DataGridState extends State<DataGrid> {
                 ? null
                 : (value) {
                     if (column.readOnly) return;
-                    setState(() {
-                      widget.rows[row][col] = value;
-                    });
-                    if (widget.onValueChanged != null) {
-                      widget.onValueChanged!(col, row, value);
-                    }
+                    _setFocusedRow(row);
+                    _setFocusedColumn(col);
+                    _setValue(col, row, value);
                   });
         break;
       case DataType.widget:
@@ -123,26 +132,14 @@ class _DataGridState extends State<DataGrid> {
         break;
     }
 
-    if (widget.columns[col].validator != null) {
-      final val = widget.columns[col].validator!(col, row, cellValue);
-      if (val != null) {
-        return DataCell(Container(
-          width: cellWidth,
-          height: double.infinity,
-          decoration: BoxDecoration(color: Colors.red.withAlpha(50)),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-            child: Align(
-              child: child,
-              alignment: column.alignment,
-            ),
-          ),
-        ));
-      }
-    }
-
-    return DataCell(SizedBox(
+    return DataCell(Container(
       width: cellWidth,
+      height: double.infinity,
+      decoration: BoxDecoration(
+          color: Colors.red.withAlpha(columns[col].validator != null &&
+                  columns[col].validator!(col, row, cellValue) != null
+              ? 50
+              : 0)),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8.0),
         child: Align(
@@ -151,6 +148,38 @@ class _DataGridState extends State<DataGrid> {
         ),
       ),
     ));
+  }
+
+  void _setFocusedRow(int row) {
+    if (_focusedRow != row) {
+      setState(() {
+        _focusedRow = row;
+      });
+      if (widget.onFocusedRowChanged != null) {
+        widget.onFocusedRowChanged!(row);
+      }
+    }
+  }
+
+  void _setFocusedColumn(int col) {
+    if (_focusedColumn != col) {
+      setState(() {
+        _focusedColumn = col;
+      });
+
+      if (widget.onFocusedColumnChanged != null) {
+        widget.onFocusedColumnChanged!(col);
+      }
+    }
+  }
+
+  void _setValue(int col, int row, dynamic value) {
+    setState(() {
+      rows[row][col] = value;
+    });
+    if (widget.onValueChanged != null) {
+      widget.onValueChanged!(col, row, value);
+    }
   }
 
   @override

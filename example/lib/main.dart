@@ -36,56 +36,87 @@ class _MyHomePageState extends State<MyHomePage> {
     ["Workplace", false, "More tests", false, null],
   ];
 
+  int _activeRow = 0;
+  int _activeCol = 0;
+  dynamic _lastValue;
+
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
       appBar: AppBar(
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
         title: Text(widget.title),
       ),
       body: Padding(
         padding: const EdgeInsets.all(8.0),
-        child: DataGrid(
-          columns: [
-            GridColumn(
-                const Expanded(child: Center(child: Text("Text (read Only)"))),
-                DataType.text,
-                readOnly: true),
-            GridColumn(
-              const Expanded(
-                  child: Center(child: Text("Checkbox (read only)"))),
-              DataType.checkbox,
-              alignment: Alignment.centerRight,
-              readOnly: true,
+        child: Column(
+          children: [
+            Row(
+              children: [
+                const Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: Icon(Icons.table_rows),
+                ),
+                Text("Focused row: $_activeRow"),
+                const Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: Icon(Icons.table_view),
+                ),
+                Text("Focused column: $_activeCol"),
+                const Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: Icon(Icons.query_builder),
+                ),
+                Text("Last value: $_lastValue"),
+              ],
             ),
-            GridColumn(
-              const Expanded(child: Center(child: Text("Text (editable)"))),
-              DataType.text,
-              validator: (col, row, value) {
-                if (value != "Valid value") return "Wrong";
-                return null;
-              },
+            DataGrid(
+              onFocusedRowChanged: (row) => setState(() => _activeRow = row),
+              onFocusedColumnChanged: (col) => setState(() => _activeCol = col),
+              onValueChanged: (col, row, value) =>
+                  setState(() => _lastValue = value),
+              columns: [
+                GridColumn(
+                    const Expanded(
+                        child: Center(child: Text("Text (read Only)"))),
+                    DataType.text,
+                    readOnly: true),
+                GridColumn(
+                  const Expanded(
+                      child: Center(child: Text("Checkbox (read only)"))),
+                  DataType.checkbox,
+                  alignment: Alignment.centerRight,
+                  readOnly: true,
+                ),
+                GridColumn(
+                  const Expanded(child: Center(child: Text("Text (editable)"))),
+                  DataType.text,
+                  validator: (col, row, value) {
+                    if (value != "Valid value") return "Wrong";
+                    return null;
+                  },
+                ),
+                GridColumn(
+                  const Expanded(
+                      child: Center(child: Text("Checkbox (editable)"))),
+                  DataType.checkbox,
+                ),
+                GridColumn(
+                  const Expanded(child: Center(child: Text("Widget"))),
+                  DataType.widget,
+                  readOnly: true,
+                )
+              ],
+              rows: data,
             ),
-            GridColumn(
-              const Expanded(child: Center(child: Text("Checkbox (editable)"))),
-              DataType.checkbox,
-            ),
-            GridColumn(
-              const Expanded(child: Center(child: Text("Widget"))),
-              DataType.widget,
-              readOnly: true,
-            )
           ],
-          rows: data,
         ),
       ),
     );
+  }
+
+  _changeRow(int row) {
+    setState(() {
+      _activeRow = row;
+    });
   }
 }
