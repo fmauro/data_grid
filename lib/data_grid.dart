@@ -76,10 +76,11 @@ class _DataGridState extends State<DataGrid> {
             const EdgeInsets.only(left: 15, bottom: 11, top: 11, right: 15),
         hintText: widget.columns[col].hintText);
 
-    Widget child;
+    Widget? child;
     switch (widget.columns[col].type) {
       case DataType.text:
         final tff = TextFormField(
+            textAlign: column.textAlign,
             enabled: !column.readOnly,
             focusNode: focusNodes[cellIndex],
             decoration: decoration,
@@ -131,7 +132,10 @@ class _DataGridState extends State<DataGrid> {
           decoration: BoxDecoration(color: Colors.red.withAlpha(50)),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8.0),
-            child: child,
+            child: Align(
+              child: child,
+              alignment: column.alignment,
+            ),
           ),
         ));
       }
@@ -141,7 +145,10 @@ class _DataGridState extends State<DataGrid> {
       width: cellWidth,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8.0),
-        child: child,
+        child: Align(
+          child: child,
+          alignment: column.alignment,
+        ),
       ),
     ));
   }
@@ -166,6 +173,8 @@ class GridColumn {
   final bool readOnly;
   final String? Function(int col, int row, dynamic value)? validator;
   final String? hintText;
+  final Alignment alignment;
+  final TextAlign textAlign;
 
   GridColumn(
     this.label,
@@ -173,6 +182,8 @@ class GridColumn {
     this.validator,
     this.hintText,
     this.readOnly = false,
+    this.alignment = Alignment.center,
+    this.textAlign = TextAlign.center,
   });
 }
 

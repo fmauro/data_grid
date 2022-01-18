@@ -29,17 +29,11 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   List<List<dynamic>> data = [
-    ["test", true, "ttasdte", true, const Icon(Icons.ac_unit_outlined)],
-    ["test", true, "ttteasdf", true, const Icon(Icons.ac_unit_outlined)],
-    ["teasst", true, "ttte", true, const Icon(Icons.face)],
-    ["teasdst", true, "ttasdfte", true, const Icon(Icons.file_download_done)],
-    ["tedst", true, "tttdedf", false, const Icon(Icons.e_mobiledata_outlined)],
-    ["tfasest", true, "ttte", true, const Icon(Icons.ac_unit_outlined)],
-    ["teasdst", true, "tasdftte", true, const Icon(Icons.qr_code_2_outlined)],
-    ["test", true, "tttea", false, const Icon(Icons.ac_unit_outlined)],
-    ["tesddt", true, "ttasdfte", true, const Icon(Icons.tab_rounded)],
-    ["teasdfssdf", true, "ttadsfte", true, const Icon(Icons.ac_unit_outlined)],
-    ["teasdfst", true, "ttteasdf", true, const Icon(Icons.ac_unit_outlined)],
+    ["Sit amet", true, "Lorem ipsum", true, const Icon(Icons.ac_unit)],
+    ["Grum drum", true, "Valid value", true, const Icon(Icons.face)],
+    ["Baja blast", false, "Invalid value", true, const Icon(Icons.adjust)],
+    ["Train station", true, "Test text", true, null],
+    ["Workplace", false, "More tests", false, null],
   ];
 
   @override
@@ -59,39 +53,32 @@ class _MyHomePageState extends State<MyHomePage> {
       body: Padding(
         padding: const EdgeInsets.all(8.0),
         child: DataGrid(
-          // onValueChanged: (col, row, value) => setState(() {
-          //   data[row][col] = value;
-          // }),
           columns: [
-            GridColumn(const Text("First Column"), DataType.text,
+            GridColumn(
+                const Expanded(child: Center(child: Text("Text (read Only)"))),
+                DataType.text,
                 readOnly: true),
             GridColumn(
-              const Text("Intermediate Column"),
+              const Expanded(
+                  child: Center(child: Text("Checkbox (read only)"))),
               DataType.checkbox,
-              validator: (col, row, value) {
-                if (value != true) return "wrong value";
-                return null;
-              },
+              alignment: Alignment.centerRight,
               readOnly: true,
             ),
             GridColumn(
-              const Text("Second Column (Edit)"),
+              const Expanded(child: Center(child: Text("Text (editable)"))),
               DataType.text,
               validator: (col, row, value) {
-                if (value != "Tessst") return "wrong value";
+                if (value != "Valid value") return "Wrong";
                 return null;
               },
             ),
             GridColumn(
-              const Text("Third Column"),
+              const Expanded(child: Center(child: Text("Checkbox (editable)"))),
               DataType.checkbox,
-              validator: (col, row, value) {
-                if (value != true) return "wrong value";
-                return null;
-              },
             ),
             GridColumn(
-              const Text("Widget Column"),
+              const Expanded(child: Center(child: Text("Widget"))),
               DataType.widget,
               readOnly: true,
             )
