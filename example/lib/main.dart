@@ -31,13 +31,13 @@ class _MyHomePageState extends State<MyHomePage> {
   List<List<dynamic>> data = [
     ["test", "ttasdte", true, const Icon(Icons.ac_unit_outlined)],
     ["test", "ttteasdf", true, const Icon(Icons.ac_unit_outlined)],
-    ["teasst", "ttte", true, const Icon(Icons.ac_unit_outlined)],
-    ["teasdst", "ttasdfte", true, const Icon(Icons.ac_unit_outlined)],
-    ["tedst", "tttdedf", false, const Icon(Icons.ac_unit_outlined)],
+    ["teasst", "ttte", true, const Icon(Icons.face)],
+    ["teasdst", "ttasdfte", true, const Icon(Icons.file_download_done)],
+    ["tedst", "tttdedf", false, const Icon(Icons.e_mobiledata_outlined)],
     ["tfasest", "ttte", true, const Icon(Icons.ac_unit_outlined)],
-    ["teasdst", "tasdftte", true, const Icon(Icons.ac_unit_outlined)],
+    ["teasdst", "tasdftte", true, const Icon(Icons.qr_code_2_outlined)],
     ["test", "tttea", false, const Icon(Icons.ac_unit_outlined)],
-    ["tesddt", "ttasdfte", true, const Icon(Icons.ac_unit_outlined)],
+    ["tesddt", "ttasdfte", true, const Icon(Icons.tab_rounded)],
     ["teasdfstasdf", "ttadsfte", true, const Icon(Icons.ac_unit_outlined)],
     ["teasdfst", "ttteasdf", true, const Icon(Icons.ac_unit_outlined)],
   ];
@@ -61,12 +61,11 @@ class _MyHomePageState extends State<MyHomePage> {
         child: DataGrid(
           onValueChanged: (col, row, value) => setState(() {
             data[row][col] = value;
-            if (col == 2) data[row][1] = "T";
           }),
           columns: [
-            GridColumn(Text("Tesdt"), DataType.text),
+            GridColumn(const Text("First Column"), DataType.text),
             GridColumn(
-              Text("Tessst"),
+              const Text("Second Column (Edit)"),
               DataType.textFormField,
               validator: (col, row, value) {
                 if (value != "Tessst") return "wrong value";
@@ -74,7 +73,7 @@ class _MyHomePageState extends State<MyHomePage> {
               },
             ),
             GridColumn(
-              Text("Tffest"),
+              const Text("Third Column"),
               DataType.checkbox,
               validator: (col, row, value) {
                 if (value != true) return "wrong value";
@@ -82,12 +81,11 @@ class _MyHomePageState extends State<MyHomePage> {
               },
             ),
             GridColumn(
-              Text("widgetTest"),
+              const Text("Widget Column"),
               DataType.widget,
-              validator: (col, row, value) => 'd',
             )
           ],
-          rows: data.map((d) => GridRow(d)).toList(),
+          rows: data,
         ),
       ),
     );

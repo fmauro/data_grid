@@ -2,7 +2,7 @@ library data_grid;
 
 import 'package:flutter/material.dart';
 
-class DataGrid extends StatelessWidget {
+class DataGrid extends StatefulWidget {
   const DataGrid(
       {Key? key,
       required this.columns,
@@ -11,27 +11,43 @@ class DataGrid extends StatelessWidget {
       : super(key: key);
 
   final List<GridColumn> columns;
-  final List<GridRow> rows;
+  final List<dynamic> rows;
 
-  final Function(
-    int col,
-    int row,
-    dynamic value,
-  )? onValueChanged;
+  final Function(int col, int row, dynamic value)? onValueChanged;
+
+  @override
+  State<DataGrid> createState() => _DataGridState();
+}
+
+class _DataGridState extends State<DataGrid> {
+  final Map<int, TextEditingController> _controllers = {};
+
+  @override
+  void initState() {
+    super.initState();
+    for (int c = 0; c < widget.columns.length; c++) {
+      if (widget.columns[c].type != DataType.textFormField) continue;
+      for (int r = 0; r < widget.rows.length; r++) {
+        final controller = TextEditingController();
+        _controllers[c * widget.rows.length + r] = controller;
+        controller.text = widget.rows[r][c];
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, constraints) {
-      final cellWidth = constraints.maxWidth / columns.length;
+      final cellWidth = constraints.maxWidth / widget.columns.length;
       return DataTable(
         horizontalMargin: 0,
         checkboxHorizontalMargin: 0,
         columnSpacing: 0,
-        columns: columns.map((e) => DataColumn(label: e.label)).toList(),
+        columns: widget.columns.map((e) => DataColumn(label: e.label)).toList(),
         rows: [
-          for (int r = 0; r < rows.length; r++)
+          for (int r = 0; r < widget.rows.length; r++)
             DataRow(cells: [
-              for (int c = 0; c < columns.length; c++)
+              for (int c = 0; c < widget.columns.length; c++)
                 _buildCell(c, r, cellWidth)
             ]),
         ],
@@ -40,29 +56,41 @@ class DataGrid extends StatelessWidget {
   }
 
   DataCell _buildCell(int col, int row, double? cellWidth) {
-    final cellValue = rows[row].cells[col];
+    final cellValue = widget.rows[row][col];
 
     Widget child;
-    switch (columns[col].type) {
+    switch (widget.columns[col].type) {
       case DataType.text:
         child = Text(cellValue);
         break;
       case DataType.textFormField:
-        child = TextFormField(
-            readOnly: onValueChanged == null,
-            initialValue: cellValue,
+        final tff = TextFormField(
+            decoration: InputDecoration(
+                border: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                errorBorder: InputBorder.none,
+                disabledBorder: InputBorder.none,
+                contentPadding: const EdgeInsets.only(
+                    left: 15, bottom: 11, top: 11, right: 15),
+                hintText: widget.columns[col].hintText),
+            controller: _controllers[col * widget.rows.length + row],
+            readOnly: widget.onValueChanged == null,
+            autofocus: false,
             onChanged: (value) {
-              if (onValueChanged != null) {
-                onValueChanged!(col, row, value);
+              if (widget.onValueChanged != null) {
+                widget.onValueChanged!(col, row, value);
               }
             });
+
+        child = tff;
         break;
       case DataType.checkbox:
         child = Checkbox(
             value: cellValue,
             onChanged: (value) {
-              if (onValueChanged != null) {
-                onValueChanged!(col, row, value);
+              if (widget.onValueChanged != null) {
+                widget.onValueChanged!(col, row, value);
               }
             });
         break;
@@ -71,8 +99,8 @@ class DataGrid extends StatelessWidget {
         break;
     }
 
-    if (columns[col].validator != null) {
-      final val = columns[col].validator!(col, row, cellValue);
+    if (widget.columns[col].validator != null) {
+      final val = widget.columns[col].validator!(col, row, cellValue);
       if (val != null) {
         return DataCell(Container(
           width: cellWidth,
@@ -94,20 +122,24 @@ class DataGrid extends StatelessWidget {
       ),
     ));
   }
-}
 
-class GridRow {
-  final List<dynamic> cells;
+  @override
+  void dispose() {
+    super.dispose();
 
-  GridRow(this.cells);
+    for (var controller in _controllers.values) {
+      controller.dispose();
+    }
+  }
 }
 
 class GridColumn {
   final Widget label;
   final DataType type;
   final String? Function(int col, int row, dynamic value)? validator;
+  final String? hintText;
 
-  GridColumn(this.label, this.type, {this.validator});
+  GridColumn(this.label, this.type, {this.validator, this.hintText});
 }
 
 enum DataType { text, textFormField, checkbox, widget }
