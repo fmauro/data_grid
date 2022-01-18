@@ -20,17 +20,23 @@ class DataGrid extends StatefulWidget {
 }
 
 class _DataGridState extends State<DataGrid> {
-  final Map<int, TextEditingController> _controllers = {};
+  final Map<int, TextEditingController> controllers = {};
+  final Map<int, FocusNode> focusNodes = {};
 
   @override
   void initState() {
     super.initState();
     for (int c = 0; c < widget.columns.length; c++) {
-      if (widget.columns[c].type != DataType.textFormField) continue;
       for (int r = 0; r < widget.rows.length; r++) {
-        final controller = TextEditingController();
-        _controllers[c * widget.rows.length + r] = controller;
-        controller.text = widget.rows[r][c];
+        if (widget.columns[c].type == DataType.text) {
+          final controller = TextEditingController();
+          controllers[c * widget.rows.length + r] = controller;
+          controller.text = widget.rows[r][c];
+        }
+
+        if (!widget.columns[c].readOnly) {
+          focusNodes[c * widget.rows.length + r] = FocusNode();
+        }
       }
     }
   }
@@ -56,28 +62,33 @@ class _DataGridState extends State<DataGrid> {
   }
 
   DataCell _buildCell(int col, int row, double? cellWidth) {
+    final column = widget.columns[col];
     final cellValue = widget.rows[row][col];
+    final cellIndex = col * widget.rows.length + row;
+
+    final decoration = InputDecoration(
+        border: InputBorder.none,
+        focusedBorder: InputBorder.none,
+        enabledBorder: InputBorder.none,
+        errorBorder: InputBorder.none,
+        disabledBorder: InputBorder.none,
+        contentPadding:
+            const EdgeInsets.only(left: 15, bottom: 11, top: 11, right: 15),
+        hintText: widget.columns[col].hintText);
 
     Widget child;
     switch (widget.columns[col].type) {
       case DataType.text:
-        child = Text(cellValue);
-        break;
-      case DataType.textFormField:
         final tff = TextFormField(
-            decoration: InputDecoration(
-                border: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                errorBorder: InputBorder.none,
-                disabledBorder: InputBorder.none,
-                contentPadding: const EdgeInsets.only(
-                    left: 15, bottom: 11, top: 11, right: 15),
-                hintText: widget.columns[col].hintText),
-            controller: _controllers[col * widget.rows.length + row],
-            readOnly: widget.onValueChanged == null,
-            autofocus: false,
+            enabled: !column.readOnly,
+            focusNode: focusNodes[cellIndex],
+            decoration: decoration,
+            controller: controllers[col * widget.rows.length + row],
+            readOnly: column.readOnly,
             onChanged: (value) {
+              setState(() {
+                widget.rows[row][col] = value;
+              });
               if (widget.onValueChanged != null) {
                 widget.onValueChanged!(col, row, value);
               }
@@ -87,15 +98,27 @@ class _DataGridState extends State<DataGrid> {
         break;
       case DataType.checkbox:
         child = Checkbox(
+            focusNode: focusNodes[cellIndex],
             value: cellValue,
-            onChanged: (value) {
-              if (widget.onValueChanged != null) {
-                widget.onValueChanged!(col, row, value);
-              }
-            });
+            onChanged: column.readOnly
+                ? null
+                : (value) {
+                    if (column.readOnly) return;
+                    setState(() {
+                      widget.rows[row][col] = value;
+                    });
+                    if (widget.onValueChanged != null) {
+                      widget.onValueChanged!(col, row, value);
+                    }
+                  });
         break;
       case DataType.widget:
-        child = cellValue;
+        child = column.readOnly
+            ? cellValue
+            : Focus(
+                focusNode: focusNodes[cellIndex],
+                child: cellValue,
+              );
         break;
     }
 
@@ -127,8 +150,12 @@ class _DataGridState extends State<DataGrid> {
   void dispose() {
     super.dispose();
 
-    for (var controller in _controllers.values) {
+    for (var controller in controllers.values) {
       controller.dispose();
+    }
+
+    for (var focusNode in focusNodes.values) {
+      focusNode.dispose();
     }
   }
 }
@@ -136,10 +163,22 @@ class _DataGridState extends State<DataGrid> {
 class GridColumn {
   final Widget label;
   final DataType type;
+  final bool readOnly;
   final String? Function(int col, int row, dynamic value)? validator;
   final String? hintText;
 
-  GridColumn(this.label, this.type, {this.validator, this.hintText});
+  GridColumn(
+    this.label,
+    this.type, {
+    this.validator,
+    this.hintText,
+    this.readOnly = false,
+  });
 }
 
-enum DataType { text, textFormField, checkbox, widget }
+enum DataType { text, checkbox, widget }
+
+class AlwaysDisabledFocusNode extends FocusNode {
+  @override
+  bool get hasFocus => false;
+}

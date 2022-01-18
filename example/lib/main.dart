@@ -29,17 +29,17 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   List<List<dynamic>> data = [
-    ["test", "ttasdte", true, const Icon(Icons.ac_unit_outlined)],
-    ["test", "ttteasdf", true, const Icon(Icons.ac_unit_outlined)],
-    ["teasst", "ttte", true, const Icon(Icons.face)],
-    ["teasdst", "ttasdfte", true, const Icon(Icons.file_download_done)],
-    ["tedst", "tttdedf", false, const Icon(Icons.e_mobiledata_outlined)],
-    ["tfasest", "ttte", true, const Icon(Icons.ac_unit_outlined)],
-    ["teasdst", "tasdftte", true, const Icon(Icons.qr_code_2_outlined)],
-    ["test", "tttea", false, const Icon(Icons.ac_unit_outlined)],
-    ["tesddt", "ttasdfte", true, const Icon(Icons.tab_rounded)],
-    ["teasdfstasdf", "ttadsfte", true, const Icon(Icons.ac_unit_outlined)],
-    ["teasdfst", "ttteasdf", true, const Icon(Icons.ac_unit_outlined)],
+    ["test", true, "ttasdte", true, const Icon(Icons.ac_unit_outlined)],
+    ["test", true, "ttteasdf", true, const Icon(Icons.ac_unit_outlined)],
+    ["teasst", true, "ttte", true, const Icon(Icons.face)],
+    ["teasdst", true, "ttasdfte", true, const Icon(Icons.file_download_done)],
+    ["tedst", true, "tttdedf", false, const Icon(Icons.e_mobiledata_outlined)],
+    ["tfasest", true, "ttte", true, const Icon(Icons.ac_unit_outlined)],
+    ["teasdst", true, "tasdftte", true, const Icon(Icons.qr_code_2_outlined)],
+    ["test", true, "tttea", false, const Icon(Icons.ac_unit_outlined)],
+    ["tesddt", true, "ttasdfte", true, const Icon(Icons.tab_rounded)],
+    ["teasdfssdf", true, "ttadsfte", true, const Icon(Icons.ac_unit_outlined)],
+    ["teasdfst", true, "ttteasdf", true, const Icon(Icons.ac_unit_outlined)],
   ];
 
   @override
@@ -59,14 +59,24 @@ class _MyHomePageState extends State<MyHomePage> {
       body: Padding(
         padding: const EdgeInsets.all(8.0),
         child: DataGrid(
-          onValueChanged: (col, row, value) => setState(() {
-            data[row][col] = value;
-          }),
+          // onValueChanged: (col, row, value) => setState(() {
+          //   data[row][col] = value;
+          // }),
           columns: [
-            GridColumn(const Text("First Column"), DataType.text),
+            GridColumn(const Text("First Column"), DataType.text,
+                readOnly: true),
+            GridColumn(
+              const Text("Intermediate Column"),
+              DataType.checkbox,
+              validator: (col, row, value) {
+                if (value != true) return "wrong value";
+                return null;
+              },
+              readOnly: true,
+            ),
             GridColumn(
               const Text("Second Column (Edit)"),
-              DataType.textFormField,
+              DataType.text,
               validator: (col, row, value) {
                 if (value != "Tessst") return "wrong value";
                 return null;
@@ -83,6 +93,7 @@ class _MyHomePageState extends State<MyHomePage> {
             GridColumn(
               const Text("Widget Column"),
               DataType.widget,
+              readOnly: true,
             )
           ],
           rows: data,
