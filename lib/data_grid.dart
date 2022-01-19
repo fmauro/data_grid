@@ -1,5 +1,7 @@
 library data_grid;
 
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
 class DataGrid extends StatefulWidget {
@@ -8,7 +10,8 @@ class DataGrid extends StatefulWidget {
       required this.controller,
       this.onValueChanged,
       this.onFocusedRowChanged,
-      this.onFocusedColumnChanged})
+      this.onFocusedColumnChanged,
+      this.minWidth = 0})
       : super(key: key);
 
   final DataGridController controller;
@@ -16,6 +19,8 @@ class DataGrid extends StatefulWidget {
   final Function(int col, int row, dynamic value)? onValueChanged;
   final Function(int row)? onFocusedRowChanged;
   final Function(int col)? onFocusedColumnChanged;
+
+  final double minWidth;
 
   @override
   State<DataGrid> createState() => _DataGridState();
@@ -25,7 +30,7 @@ class _DataGridState extends State<DataGrid> {
   int? _focusedRow;
   int? _focusedColumn;
 
-  final Map<int, FocusNode> focusNodes = {};
+  final Map<int, FocusNode> _focusNodes = {};
 
   @override
   void initState() {
@@ -40,7 +45,7 @@ class _DataGridState extends State<DataGrid> {
       for (int r = 0; r < rows.length; r++) {
         if (!columns[c].readOnly) {
           final focusNode = FocusNode();
-          focusNodes[c * rows.length + r] = focusNode;
+          _focusNodes[c * rows.length + r] = focusNode;
           focusNode.addListener(() {
             if (focusNode.hasFocus) {
               _setFocusedColumn(c);
@@ -58,19 +63,26 @@ class _DataGridState extends State<DataGrid> {
     final rows = widget.controller.rows;
 
     return LayoutBuilder(builder: (context, constraints) {
-      final cellWidth = constraints.maxWidth / columns.length;
-      return DataTable(
-        horizontalMargin: 0,
-        checkboxHorizontalMargin: 0,
-        columnSpacing: 0,
-        columns: columns.map((e) => DataColumn(label: e.label)).toList(),
-        rows: [
-          for (int r = 0; r < rows.length; r++)
-            DataRow(cells: [
-              for (int c = 0; c < columns.length; c++)
-                _buildCell(c, r, cellWidth)
-            ]),
-        ],
+      final double width = max(widget.minWidth, constraints.maxWidth);
+      final cellWidth = width / columns.length;
+      return SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minWidth: width),
+          child: DataTable(
+            horizontalMargin: 0,
+            checkboxHorizontalMargin: 0,
+            columnSpacing: 0,
+            columns: columns.map((e) => DataColumn(label: e.label)).toList(),
+            rows: [
+              for (int r = 0; r < rows.length; r++)
+                DataRow(cells: [
+                  for (int c = 0; c < columns.length; c++)
+                    _buildCell(c, r, cellWidth)
+                ]),
+            ],
+          ),
+        ),
       );
     });
   }
@@ -95,21 +107,19 @@ class _DataGridState extends State<DataGrid> {
 
     Widget? child;
     switch (columns[col].type) {
-      case DataType.text:
-        final tff = TextFormField(
+      case ColumnType.text:
+        child = TextFormField(
             textAlign: column.textAlign,
             enabled: !column.readOnly,
-            focusNode: focusNodes[cellIndex],
+            focusNode: _focusNodes[cellIndex],
             decoration: decoration,
             controller: widget.controller.controllers[col * rows.length + row],
             readOnly: column.readOnly,
             onChanged: (value) => _setValue(col, row, value));
-
-        child = tff;
         break;
-      case DataType.checkbox:
+      case ColumnType.checkbox:
         child = Checkbox(
-            focusNode: focusNodes[cellIndex],
+            focusNode: _focusNodes[cellIndex],
             value: cellValue,
             onChanged: column.readOnly
                 ? null
@@ -120,11 +130,11 @@ class _DataGridState extends State<DataGrid> {
                     _setValue(col, row, value);
                   });
         break;
-      case DataType.widget:
+      case ColumnType.widget:
         child = column.readOnly
             ? cellValue
             : Focus(
-                focusNode: focusNodes[cellIndex],
+                focusNode: _focusNodes[cellIndex],
                 child: cellValue,
               );
         break;
@@ -184,7 +194,7 @@ class _DataGridState extends State<DataGrid> {
   void dispose() {
     super.dispose();
 
-    for (var focusNode in focusNodes.values) {
+    for (var focusNode in _focusNodes.values) {
       focusNode.dispose();
     }
   }
@@ -192,7 +202,7 @@ class _DataGridState extends State<DataGrid> {
 
 class GridColumn {
   final Widget label;
-  final DataType type;
+  final ColumnType type;
   final bool readOnly;
   final String? Function(int col, int row, dynamic value)? validator;
   final String? hintText;
@@ -210,7 +220,7 @@ class GridColumn {
   });
 }
 
-enum DataType { text, checkbox, widget }
+enum ColumnType { text, checkbox, widget }
 
 class DataGridController extends ChangeNotifier {
   final List<GridColumn> columns;
@@ -224,7 +234,7 @@ class DataGridController extends ChangeNotifier {
   }) {
     for (int c = 0; c < columns.length; c++) {
       for (int r = 0; r < rows.length; r++) {
-        if (columns[c].type == DataType.text) {
+        if (columns[c].type == ColumnType.text) {
           final controller = TextEditingController();
           controllers[c * rows.length + r] = controller;
           controller.text = rows[r][c];

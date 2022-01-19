@@ -49,17 +49,17 @@ class _MyHomePageState extends State<MyHomePage> {
       columns: [
         GridColumn(
             const Expanded(child: Center(child: Text("Text (read Only)"))),
-            DataType.text,
+            ColumnType.text,
             readOnly: true),
         GridColumn(
           const Expanded(child: Center(child: Text("Checkbox (read only)"))),
-          DataType.checkbox,
+          ColumnType.checkbox,
           alignment: Alignment.centerRight,
           readOnly: true,
         ),
         GridColumn(
           const Expanded(child: Center(child: Text("Text (editable)"))),
-          DataType.text,
+          ColumnType.text,
           validator: (col, row, value) {
             if (value != "Valid value") return "Wrong";
             return null;
@@ -67,11 +67,11 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
         GridColumn(
           const Expanded(child: Center(child: Text("Checkbox (editable)"))),
-          DataType.checkbox,
+          ColumnType.checkbox,
         ),
         GridColumn(
           const Expanded(child: Center(child: Text("Widget"))),
-          DataType.widget,
+          ColumnType.widget,
           readOnly: true,
         )
       ],
@@ -107,11 +107,12 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
                 Text("Last value: $_lastValue"),
                 IconButton(
-                    onPressed: () => controller.setCellValue(0, 1, false),
+                    onPressed: () => controller.setCellValue(0, 3, false),
                     icon: const Icon(Icons.text_snippet))
               ],
             ),
             DataGrid(
+              minWidth: 1000,
               controller: controller,
               onFocusedRowChanged: (row) => setState(() => _activeRow = row),
               onFocusedColumnChanged: (col) => setState(() => _activeCol = col),
