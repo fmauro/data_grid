@@ -64,11 +64,12 @@ class _DataGridState extends State<DataGrid> {
 
     return LayoutBuilder(builder: (context, constraints) {
       final double width = max(widget.minWidth, constraints.maxWidth);
-      final cellWidth = width / columns.length;
+      final fullFlex = columns.map((c) => c.flex).reduce((a, b) => a + b);
+      final singleFlexWidth = width / fullFlex;
       return SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: ConstrainedBox(
-          constraints: BoxConstraints(minWidth: width),
+          constraints: BoxConstraints(minWidth: width, maxWidth: width),
           child: DataTable(
             horizontalMargin: 0,
             checkboxHorizontalMargin: 0,
@@ -78,7 +79,7 @@ class _DataGridState extends State<DataGrid> {
               for (int r = 0; r < rows.length; r++)
                 DataRow(cells: [
                   for (int c = 0; c < columns.length; c++)
-                    _buildCell(c, r, cellWidth)
+                    _buildCell(c, r, singleFlexWidth)
                 ]),
             ],
           ),
@@ -87,7 +88,7 @@ class _DataGridState extends State<DataGrid> {
     });
   }
 
-  DataCell _buildCell(int col, int row, double? cellWidth) {
+  DataCell _buildCell(int col, int row, double flexWidth) {
     final columns = widget.controller.columns;
     final rows = widget.controller.rows;
 
@@ -141,7 +142,7 @@ class _DataGridState extends State<DataGrid> {
     }
 
     return DataCell(Container(
-      width: cellWidth,
+      width: column.flex * flexWidth,
       height: double.infinity,
       decoration: BoxDecoration(
           color: Colors.red.withAlpha(columns[col].validator != null &&
@@ -208,6 +209,7 @@ class GridColumn {
   final String? hintText;
   final Alignment alignment;
   final TextAlign textAlign;
+  final int flex;
 
   GridColumn(
     this.label,
@@ -217,6 +219,7 @@ class GridColumn {
     this.readOnly = false,
     this.alignment = Alignment.center,
     this.textAlign = TextAlign.center,
+    this.flex = 1,
   });
 }
 

@@ -48,26 +48,25 @@ class _MyHomePageState extends State<MyHomePage> {
     controller = DataGridController(
       columns: [
         GridColumn(
-            const Expanded(child: Center(child: Text("Text (read Only)"))),
-            ColumnType.text,
-            readOnly: true),
-        GridColumn(
-          const Expanded(child: Center(child: Text("Checkbox (read only)"))),
-          ColumnType.checkbox,
-          alignment: Alignment.centerRight,
-          readOnly: true,
-        ),
-        GridColumn(
-          const Expanded(child: Center(child: Text("Text (editable)"))),
+          const Expanded(child: Center(child: Text("Text (read Only)"))),
           ColumnType.text,
-          validator: (col, row, value) {
-            if (value != "Valid value") return "Wrong";
-            return null;
-          },
+          readOnly: true,
         ),
         GridColumn(
           const Expanded(child: Center(child: Text("Checkbox (editable)"))),
           ColumnType.checkbox,
+          alignment: Alignment.centerRight,
+        ),
+        GridColumn(
+            const Expanded(child: Center(child: Text("Text (editable)"))),
+            ColumnType.text, validator: (col, row, value) {
+          if (value != "Valid value") return "Wrong";
+          return null;
+        }, flex: 4, textAlign: TextAlign.left),
+        GridColumn(
+          const Expanded(child: Center(child: Text("Checkbox (read only)"))),
+          ColumnType.checkbox,
+          readOnly: true,
         ),
         GridColumn(
           const Expanded(child: Center(child: Text("Widget"))),
