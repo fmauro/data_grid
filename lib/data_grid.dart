@@ -5,20 +5,10 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 class DataGrid extends StatefulWidget {
-  const DataGrid(
-      {Key? key,
-      required this.controller,
-      this.onValueChanged,
-      this.onFocusedRowChanged,
-      this.onFocusedColumnChanged,
-      this.minWidth = 0})
+  const DataGrid({Key? key, required this.controller, this.minWidth = 0})
       : super(key: key);
 
   final DataGridController controller;
-
-  final Function(int col, int row, dynamic value)? onValueChanged;
-  final Function(int row)? onFocusedRowChanged;
-  final Function(int col)? onFocusedColumnChanged;
 
   final double minWidth;
 
@@ -27,34 +17,14 @@ class DataGrid extends StatefulWidget {
 }
 
 class _DataGridState extends State<DataGrid> {
-  int? _focusedRow;
-  int? _focusedColumn;
-
-  final Map<int, FocusNode> _focusNodes = {};
+  int? _sortColumn;
+  bool _sortAscending = true;
 
   @override
   void initState() {
     super.initState();
 
     widget.controller.addListener(() => setState(() {}));
-
-    final columns = widget.controller.columns;
-    final rows = widget.controller.rows;
-
-    for (int c = 0; c < columns.length; c++) {
-      for (int r = 0; r < rows.length; r++) {
-        if (!columns[c].readOnly) {
-          final focusNode = FocusNode();
-          _focusNodes[c * rows.length + r] = focusNode;
-          focusNode.addListener(() {
-            if (focusNode.hasFocus) {
-              _setFocusedColumn(c);
-              _setFocusedRow(r);
-            }
-          });
-        }
-      }
-    }
   }
 
   @override
@@ -71,10 +41,29 @@ class _DataGridState extends State<DataGrid> {
         child: ConstrainedBox(
           constraints: BoxConstraints(minWidth: width, maxWidth: width),
           child: DataTable(
+            sortAscending: _sortAscending,
+            sortColumnIndex: _sortColumn,
             horizontalMargin: 0,
             checkboxHorizontalMargin: 0,
             columnSpacing: 0,
-            columns: columns.map((e) => DataColumn(label: e.label)).toList(),
+            columns: columns
+                .map((e) => DataColumn(
+                    onSort: e.onSort == null
+                        ? null
+                        : (columnIndex, ascending) {
+                            setState(() {
+                              _sortColumn = columnIndex;
+                              _sortAscending = ascending;
+                            });
+                            rows.sort((one, two) => ascending
+                                ? e.onSort!(one[columnIndex], two[columnIndex])
+                                : e.onSort!(
+                                    two[columnIndex], one[columnIndex]));
+
+                            widget.controller.reloadData();
+                          },
+                    label: e.label))
+                .toList(),
             rows: [
               for (int r = 0; r < rows.length; r++)
                 DataRow(cells: [
@@ -94,7 +83,6 @@ class _DataGridState extends State<DataGrid> {
 
     final column = columns[col];
     final cellValue = rows[row][col];
-    final cellIndex = col * rows.length + row;
 
     final decoration = InputDecoration(
         border: InputBorder.none,
@@ -112,22 +100,20 @@ class _DataGridState extends State<DataGrid> {
         child = TextFormField(
             textAlign: column.textAlign,
             enabled: !column.readOnly,
-            focusNode: _focusNodes[cellIndex],
+            focusNode: widget.controller.focusNodes[Point(col, row)],
             decoration: decoration,
-            controller: widget.controller.controllers[col * rows.length + row],
+            controller: widget.controller.controllers[Point(col, row)],
             readOnly: column.readOnly,
             onChanged: (value) => _setValue(col, row, value));
         break;
       case ColumnType.checkbox:
         child = Checkbox(
-            focusNode: _focusNodes[cellIndex],
+            focusNode: widget.controller.focusNodes[Point(col, row)],
             value: cellValue,
             onChanged: column.readOnly
                 ? null
                 : (value) {
                     if (column.readOnly) return;
-                    _setFocusedRow(row);
-                    _setFocusedColumn(col);
                     _setValue(col, row, value);
                   });
         break;
@@ -135,7 +121,7 @@ class _DataGridState extends State<DataGrid> {
         child = column.readOnly
             ? cellValue
             : Focus(
-                focusNode: _focusNodes[cellIndex],
+                focusNode: widget.controller.focusNodes[Point(col, row)],
                 child: cellValue,
               );
         break;
@@ -159,44 +145,9 @@ class _DataGridState extends State<DataGrid> {
     ));
   }
 
-  void _setFocusedRow(int row) {
-    if (_focusedRow != row) {
-      setState(() {
-        _focusedRow = row;
-      });
-      if (widget.onFocusedRowChanged != null) {
-        widget.onFocusedRowChanged!(row);
-      }
-    }
-  }
-
-  void _setFocusedColumn(int col) {
-    if (_focusedColumn != col) {
-      setState(() {
-        _focusedColumn = col;
-      });
-
-      if (widget.onFocusedColumnChanged != null) {
-        widget.onFocusedColumnChanged!(col);
-      }
-    }
-  }
-
   void _setValue(int col, int row, dynamic value) {
     if (value != widget.controller.rows[row][col]) {
-      widget.controller.setCellValue(row, col, value, notify: false);
-    }
-    if (widget.onValueChanged != null) {
-      widget.onValueChanged!(col, row, value);
-    }
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-
-    for (var focusNode in _focusNodes.values) {
-      focusNode.dispose();
+      widget.controller.setCellValue(row, col, value);
     }
   }
 }
@@ -211,6 +162,8 @@ class GridColumn {
   final TextAlign textAlign;
   final int flex;
 
+  final int Function(dynamic one, dynamic two)? onSort;
+
   GridColumn(
     this.label,
     this.type, {
@@ -220,6 +173,7 @@ class GridColumn {
     this.alignment = Alignment.center,
     this.textAlign = TextAlign.center,
     this.flex = 1,
+    this.onSort,
   });
 }
 
@@ -229,7 +183,11 @@ class DataGridController extends ChangeNotifier {
   final List<GridColumn> columns;
   final List<List<dynamic>> rows;
 
-  final Map<int, TextEditingController> controllers = {};
+  int? _focusedRow;
+  int? _focusedColumn;
+
+  final Map<Point<int>, TextEditingController> controllers = {};
+  final Map<Point<int>, FocusNode> focusNodes = {};
 
   DataGridController({
     required this.columns,
@@ -239,11 +197,45 @@ class DataGridController extends ChangeNotifier {
       for (int r = 0; r < rows.length; r++) {
         if (columns[c].type == ColumnType.text) {
           final controller = TextEditingController();
-          controllers[c * rows.length + r] = controller;
+          controllers[Point(c, r)] = controller;
           controller.text = rows[r][c];
+        }
+        if (!columns[c].readOnly) {
+          final focusNode = FocusNode();
+          focusNodes[Point(c, r)] = focusNode;
+          focusNode.addListener(() {
+            if (focusNode.hasFocus) {
+              _setFocusedColumn(c);
+              _setFocusedRow(r);
+            }
+          });
         }
       }
     }
+  }
+
+  void _setFocusedRow(int row) {
+    if (_focusedRow != row) {
+      _focusedRow = row;
+    }
+  }
+
+  void _setFocusedColumn(int col) {
+    if (_focusedColumn != col) {
+      _focusedColumn = col;
+    }
+  }
+
+  reloadData() {
+    for (int c = 0; c < columns.length; c++) {
+      for (int r = 0; r < rows.length; r++) {
+        if (columns[c].type == ColumnType.text) {
+          controllers[Point(c, r)]?.text = rows[r][c];
+        }
+      }
+    }
+
+    notifyListeners();
   }
 
   setCellValue(int row, int col, dynamic value, {bool notify = true}) {
@@ -258,12 +250,36 @@ class DataGridController extends ChangeNotifier {
     return rows[row][col];
   }
 
+  addRow(List<dynamic> rowData) {
+    rows.add(rowData);
+
+    for (int c = 0; c < columns.length; c++) {
+      if (columns[c].type == ColumnType.text) {
+        final controller = TextEditingController();
+        controllers[Point(c, rows.length - 1)] = controller;
+        controller.text = rows[(rows.length - 1)][c];
+      }
+    }
+
+    notifyListeners();
+  }
+
+  removeRow(int row) {
+    rows.removeAt(row);
+
+    reloadData();
+  }
+
   @override
   void dispose() {
     super.dispose();
 
     for (var controller in controllers.values) {
       controller.dispose();
+    }
+
+    for (var focusNode in focusNodes.values) {
+      focusNode.dispose();
     }
   }
 }

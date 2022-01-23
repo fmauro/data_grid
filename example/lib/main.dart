@@ -36,10 +36,6 @@ class _MyHomePageState extends State<MyHomePage> {
     ["Workplace", false, "More tests", false, null],
   ];
 
-  int _activeRow = 0;
-  int _activeCol = 0;
-  dynamic _lastValue;
-
   late DataGridController controller;
 
   @override
@@ -51,6 +47,7 @@ class _MyHomePageState extends State<MyHomePage> {
           const Expanded(child: Center(child: Text("Text (read Only)"))),
           ColumnType.text,
           readOnly: true,
+          onSort: (one, two) => one.compareTo(two),
         ),
         GridColumn(
           const Expanded(child: Center(child: Text("Checkbox (editable)"))),
@@ -58,11 +55,16 @@ class _MyHomePageState extends State<MyHomePage> {
           alignment: Alignment.centerRight,
         ),
         GridColumn(
-            const Expanded(child: Center(child: Text("Text (editable)"))),
-            ColumnType.text, validator: (col, row, value) {
-          if (value != "Valid value") return "Wrong";
-          return null;
-        }, flex: 4, textAlign: TextAlign.left),
+          const Expanded(child: Center(child: Text("Text (editable)"))),
+          ColumnType.text,
+          validator: (col, row, value) {
+            if (value != "Valid value") return "Wrong";
+            return null;
+          },
+          flex: 4,
+          textAlign: TextAlign.left,
+          onSort: (one, two) => one.compareTo(two),
+        ),
         GridColumn(
           const Expanded(child: Center(child: Text("Checkbox (read only)"))),
           ColumnType.checkbox,
@@ -86,39 +88,19 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(8.0),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                const Padding(
-                  padding: EdgeInsets.all(8.0),
-                  child: Icon(Icons.table_rows),
-                ),
-                Text("Focused row: $_activeRow"),
-                const Padding(
-                  padding: EdgeInsets.all(8.0),
-                  child: Icon(Icons.table_view),
-                ),
-                Text("Focused column: $_activeCol"),
-                const Padding(
-                  padding: EdgeInsets.all(8.0),
-                  child: Icon(Icons.query_builder),
-                ),
-                Text("Last value: $_lastValue"),
-                IconButton(
-                    onPressed: () => controller.setCellValue(0, 3, false),
-                    icon: const Icon(Icons.text_snippet))
-              ],
-            ),
-            DataGrid(
-              minWidth: 1000,
-              controller: controller,
-              onFocusedRowChanged: (row) => setState(() => _activeRow = row),
-              onFocusedColumnChanged: (col) => setState(() => _activeCol = col),
-              onValueChanged: (col, row, value) =>
-                  setState(() => _lastValue = value),
-            ),
-          ],
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              IconButton(
+                  onPressed: () => controller
+                      .addRow(["Train station", true, "Test text", true, null]),
+                  icon: Icon(Icons.add)),
+              DataGrid(
+                minWidth: 1000,
+                controller: controller,
+              ),
+            ],
+          ),
         ),
       ),
     );
